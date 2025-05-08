@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:enjaz/database_helper.dart';
 import 'package:enjaz/achievement.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +23,15 @@ class MyApp extends StatelessWidget {
         fontFamily: 'ComicNeue',
         useMaterial3: true,
       ),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ar'),
+        Locale('en'),
+      ],
       home: const HomeScreen(),
     );
   }
@@ -319,6 +329,110 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                    // زر إضافة ليوم سابق
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        DateTime? selectedDate = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now().subtract(const Duration(days: 1)),
+                          firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                          lastDate: DateTime.now(),
+                          locale: const Locale('ar'),
+                        );
+                        if (selectedDate != null) {
+                          Map<String, bool> selectedAchievements = {
+                            'النوم قبل العاشرة': false,
+                            'النوم نصف ساعه فقط بالنهار': false,
+                            'الصلاة على وقتها': false,
+                          };
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return StatefulBuilder(
+                                builder: (BuildContext context, StateSetter setState) {
+                                  return AlertDialog(
+                                    title: Text('إنجازات ${DateFormat('yyyy/MM/dd').format(selectedDate)}'),
+                                    content: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: selectedAchievements.keys.map((achievement) {
+                                        return CheckboxListTile(
+                                          title: Text(achievement),
+                                          value: selectedAchievements[achievement],
+                                          onChanged: (bool? value) {
+                                            setState(() {
+                                              selectedAchievements[achievement] = value ?? false;
+                                            });
+                                          },
+                                        );
+                                      }).toList(),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('إلغاء'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () async {
+                                          int totalAchievements = selectedAchievements.values
+                                              .where((value) => value)
+                                              .length;
+                                          if (totalAchievements > 0) {
+                                            try {
+                                              await DatabaseHelper.instance.insertAchievement(
+                                                child['name']!,
+                                                totalAchievements,
+                                                date: selectedDate,
+                                              );
+                                              if (mounted) {
+                                                await _refreshAchievements(child['name']!);
+                                                final randomMsg = (encouragementMessages..shuffle()).first;
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(randomMsg, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18)),
+                                                      backgroundColor: Colors.purple[200],
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(content: Text(e.toString())),
+                                                );
+                                              }
+                                            }
+                                          }
+                                          if (mounted) {
+                                            Navigator.of(context).pop();
+                                          }
+                                        },
+                                        child: const Text('حفظ'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.calendar_today, color: Colors.deepPurple),
+                      label: const Text('إضافة ليوم سابق', style: TextStyle(fontSize: 16)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple[50],
+                        foregroundColor: Colors.deepPurple,
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
                       ),
                     ),
                   ],

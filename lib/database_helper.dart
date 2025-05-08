@@ -14,24 +14,21 @@ class DatabaseHelper {
     _achievementsBox = await Hive.openBox<Achievement>('achievements');
   }
 
-  Future<void> insertAchievement(String childName, int achievementNumber) async {
-    final date = DateTime.now();
-    
-    // First, delete any existing achievement for today
-    final today = DateFormat('yyyy-MM-dd').format(date);
+  Future<void> insertAchievement(String childName, int achievementNumber, {DateTime? date}) async {
+    final DateTime usedDate = date ?? DateTime.now();
+    final today = DateFormat('yyyy-MM-dd').format(usedDate);
+    // First, delete any existing achievement for that day
     final existingAchievements = _achievementsBox!.values.where((achievement) =>
         achievement.childName == childName &&
         DateFormat('yyyy-MM-dd').format(achievement.date) == today);
-    
     for (var achievement in existingAchievements) {
       await achievement.delete();
     }
-
     // Then insert the new achievement
     await _achievementsBox!.add(Achievement(
       childName: childName,
       achievementNumber: achievementNumber,
-      date: date,
+      date: usedDate,
     ));
   }
 
