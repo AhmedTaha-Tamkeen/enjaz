@@ -178,32 +178,92 @@ class _HomeScreenState extends State<HomeScreen> {
                         border: Border.all(color: Colors.purple[200]!, width: 2),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: DropdownButton<int>(
-                        value: todayAchievements[child['name']!],
-                        hint: const Text('كم أنجزت اليوم', style: TextStyle(fontSize: 18)),
-                        isExpanded: true,
-                        icon: const Icon(Icons.emoji_events, color: Colors.amber),
-                        underline: const SizedBox(),
-                        items: List.generate(6, (index) => index).map((number) {
-                          return DropdownMenuItem<int>(
-                            value: number,
-                            child: Text(
-                              number.toString(),
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                            ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              Map<String, bool> selectedAchievements = {
+                                'النوم قبل العاشرة': false,
+                                'النوم نصف ساعه فقط بالنهار': false,
+                                'الصلاة على وقتها': false,
+                              };
+                              
+                              return StatefulBuilder(
+                                builder: (BuildContext context, StateSetter setState) {
+                                  return AlertDialog(
+                                    title: const Text('إنجازات اليوم'),
+                                    content: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: selectedAchievements.keys.map((achievement) {
+                                        return CheckboxListTile(
+                                          title: Text(achievement),
+                                          value: selectedAchievements[achievement],
+                                          onChanged: (bool? value) {
+                                            setState(() {
+                                              selectedAchievements[achievement] = value ?? false;
+                                            });
+                                          },
+                                        );
+                                      }).toList(),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('إلغاء'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () async {
+                                          int totalAchievements = selectedAchievements.values
+                                              .where((value) => value)
+                                              .length;
+                                          
+                                          if (totalAchievements > 0) {
+                                            await _saveAchievement(child['name']!, totalAchievements);
+                                            if (mounted) {
+                                              setState(() {
+                                                todayAchievements[child['name']!] = totalAchievements;
+                                              });
+                                            }
+                                          }
+                                          if (mounted) {
+                                            Navigator.of(context).pop();
+                                          }
+                                        },
+                                        child: const Text('حفظ'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
                           );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            _saveAchievement(child['name']!, value).then((_) {
-                              // setState(() {});
-                              // set dropdown value to value
-                            setState(() {
-                              todayAchievements[child['name']!] = value;
-                            });
-                            });
-                          }
                         },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple[100],
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.emoji_events, color: Colors.amber),
+                            const SizedBox(width: 8),
+                            Text(
+                              todayAchievements[child['name']!] != null
+                                  ? 'تم إنجاز ${todayAchievements[child['name']!]} مهام'
+                                  : 'إضافة إنجازات اليوم',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
